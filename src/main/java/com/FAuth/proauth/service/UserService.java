@@ -20,6 +20,7 @@ import static com.FAuth.proauth.entity.UserStatus.ACTIVE;
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     //SaveUser
     public ApiResponse saveUser(RegisterRequest request){
@@ -37,19 +38,20 @@ public class UserService {
                     .emailVerified(false)
                     .build();
             userRepository.save(user);
-            return new ApiResponse(true,"User Registered Successfully.");
+            return new ApiResponse(true,"User Registered Successfully.",null);
     }
 
     //Login
     public ApiResponse login(LoginRequest request){
         Optional<User> user=userRepository.findByEmail(request.getEmail());
         if(user.isEmpty()){
-            return new ApiResponse(false,"User not found.");
+            return new ApiResponse(false,"User not found.",null);
         }
-        boolean matches=passwordEncoder.matches(request.getPassword(),user.get().getPassword());
-        if(!matches){
-            return new ApiResponse(false,"Password or UserEmail is Invalid.");
+        boolean matches = passwordEncoder.matches(request.getPassword(), user.get().getPassword());
+        if (!matches) {
+            return new ApiResponse(false, "Password or UserEmail is Invalid.", null);
         }
-        return new ApiResponse(true,"User Logged In Successfully.");
-        }
+        String token = jwtService.generateToken(user.get().getEmail());
+        return new ApiResponse(true, "User Logged In Successfully.", token);
+    }
 }
