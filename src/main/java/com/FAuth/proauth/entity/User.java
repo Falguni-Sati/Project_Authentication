@@ -21,7 +21,7 @@ public class User {
     private String password;
     private Role role;
     private UserStatus status;
-    private boolean emailVerified;
+    private Boolean emailVerified;
     private Instant createdAt;
     private Instant updatedAt;
 }

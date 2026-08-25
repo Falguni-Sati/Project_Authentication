@@ -2,7 +2,9 @@ package com.FAuth.proauth.service;
 
 import com.FAuth.proauth.dto.ApiResponse;
 import com.FAuth.proauth.dto.LoginRequest;
+import com.FAuth.proauth.dto.LoginResponse;
 import com.FAuth.proauth.dto.RegisterRequest;
+import com.FAuth.proauth.entity.RefreshToken;
 import com.FAuth.proauth.entity.User;
 import com.FAuth.proauth.exception.UserAlreadyExistsException;
 import com.FAuth.proauth.repository.UserRepository;
@@ -21,6 +23,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
 
     //SaveUser
     public ApiResponse saveUser(RegisterRequest request){
@@ -42,16 +45,33 @@ public class UserService {
     }
 
     //Login
-    public ApiResponse login(LoginRequest request){
+    public Object login(LoginRequest request){
         Optional<User> user=userRepository.findByEmail(request.getEmail());
         if(user.isEmpty()){
             return new ApiResponse(false,"User not found.",null);
         }
         boolean matches = passwordEncoder.matches(request.getPassword(), user.get().getPassword());
-        if (!matches) {
-            return new ApiResponse(false, "Password or UserEmail is Invalid.", null);
+
+        if (matches) {
+
+            String accessToken =
+                    jwtService.generateToken(user.get().getEmail());
+
+            RefreshToken refreshToken =
+                    refreshTokenService.createRefreshToken(user.get().getEmail());
+
+            return new LoginResponse(
+                    accessToken,
+                    refreshToken.getToken()
+            );
         }
-        String token = jwtService.generateToken(user.get().getEmail());
-        return new ApiResponse(true, "User Logged In Successfully.", token);
+        return new ApiResponse(false, "Password or UserEmail is Invalid.", null);
+    }
+
+
+    //GetByEmail
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
     }
 }
