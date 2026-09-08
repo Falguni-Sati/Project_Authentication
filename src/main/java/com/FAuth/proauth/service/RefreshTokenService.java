@@ -1,6 +1,7 @@
 package com.FAuth.proauth.service;
 
 import com.FAuth.proauth.entity.RefreshToken;
+import com.FAuth.proauth.exception.RefreshTokenException;
 import com.FAuth.proauth.repository.RefreshTokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,7 +31,7 @@ public class RefreshTokenService {
 
             refreshTokenRepository.delete(refreshToken);
 
-            throw new RuntimeException("Refresh token has expired");
+            throw new RefreshTokenException("Refresh token has expired");
         }
 
         return refreshToken;
@@ -41,7 +42,7 @@ public class RefreshTokenService {
         return refreshTokenRepository.findByToken(token)
                 .map(this::verifyExpiration)
                 .orElseThrow(() ->
-                        new RuntimeException("Refresh token not found"));
+                        new RefreshTokenException("Refresh token not found"));
     }
 
     public void deleteByToken(String token) {

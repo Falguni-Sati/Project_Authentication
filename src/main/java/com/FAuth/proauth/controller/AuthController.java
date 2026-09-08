@@ -2,7 +2,6 @@ package com.FAuth.proauth.controller;
 
 import com.FAuth.proauth.dto.*;
 import com.FAuth.proauth.entity.RefreshToken;
-import com.FAuth.proauth.repository.UserRepository;
 import com.FAuth.proauth.service.JwtService;
 import com.FAuth.proauth.service.RefreshTokenService;
 import com.FAuth.proauth.service.UserService;
@@ -29,10 +28,10 @@ public class AuthController {
     }
 
     //POST(Login)
-    @PostMapping("/login")
-    public ResponseEntity<?> loginUser(@Valid @RequestBody LoginRequest request){
-        Object response=userService.login(request);
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+    @PostMapping("/loginUser")
+    public ResponseEntity<LoginResponse> loginUser(
+            @Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(userService.login(request));
     }
 
     //Refresh Token

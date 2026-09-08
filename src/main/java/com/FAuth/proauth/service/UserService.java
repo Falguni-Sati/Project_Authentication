@@ -6,6 +6,7 @@ import com.FAuth.proauth.dto.LoginResponse;
 import com.FAuth.proauth.dto.RegisterRequest;
 import com.FAuth.proauth.entity.RefreshToken;
 import com.FAuth.proauth.entity.User;
+import com.FAuth.proauth.exception.InvalidCredentialsException;
 import com.FAuth.proauth.exception.UserAlreadyExistsException;
 import com.FAuth.proauth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -45,10 +46,10 @@ public class UserService {
     }
 
     //Login
-    public Object login(LoginRequest request){
+    public LoginResponse login(LoginRequest request){
         Optional<User> user=userRepository.findByEmail(request.getEmail());
-        if(user.isEmpty()){
-            return new ApiResponse(false,"User not found.",null);
+        if (user.isEmpty()) {
+            throw new InvalidCredentialsException("Invalid email or password");
         }
         boolean matches = passwordEncoder.matches(request.getPassword(), user.get().getPassword());
 
@@ -65,7 +66,7 @@ public class UserService {
                     refreshToken.getToken()
             );
         }
-        return new ApiResponse(false, "Password or UserEmail is Invalid.", null);
+        throw new InvalidCredentialsException("Password or UserName is Invalid");
     }
 
 
