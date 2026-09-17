@@ -6,7 +6,8 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class ApiResponse {
+@Schema(description = "Standard API response wrapper")
+public class ApiResponse<T> {
 
     @Schema(
             description = "Indicates whether the operation was successful",
@@ -15,14 +16,14 @@ public class ApiResponse {
     private boolean success;
 
     @Schema(
-            description = "Message describing the result of the operation",
+            description = "Message describing the result",
             example = "User Registered Successfully."
     )
     private String message;
 
     @Schema(
-            description = "JWT token returned when applicable",
-            example = "eyJhbGciOiJIUzI1NiJ9..."
+            description = "Response data",
+            nullable = true
     )
-    private String token;
+    private T data;
 }

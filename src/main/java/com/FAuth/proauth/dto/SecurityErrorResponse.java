@@ -5,12 +5,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 
 @Getter
 @AllArgsConstructor
-@Schema(description = "Standard API error response")
-public class ErrorResponse {
+@Schema(description = "Security-related error response")
+public class SecurityErrorResponse {
 
     @Schema(
             description = "Indicates whether the request was successful",
@@ -19,8 +18,8 @@ public class ErrorResponse {
     private boolean success;
 
     @Schema(
-            description = "Description of the error",
-            example = "Validation failed"
+            description = "Description of the security error",
+            example = "Authentication required"
     )
     private String message;
 
@@ -29,10 +28,4 @@ public class ErrorResponse {
             example = "2026-08-24T14:30:00"
     )
     private LocalDateTime timestamp;
-
-    @Schema(
-            description = "Field-specific validation errors",
-            example = "{\"email\":\"must be a valid email address\"}"
-    )
-    private Map<String, String> errors;
 }

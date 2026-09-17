@@ -10,6 +10,7 @@ import com.FAuth.proauth.exception.InvalidCredentialsException;
 import com.FAuth.proauth.exception.UserAlreadyExistsException;
 import com.FAuth.proauth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +19,7 @@ import java.util.Optional;
 import static com.FAuth.proauth.entity.Role.USER;
 import static com.FAuth.proauth.entity.UserStatus.ACTIVE;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class UserService {
@@ -27,9 +29,11 @@ public class UserService {
     private final RefreshTokenService refreshTokenService;
 
     //SaveUser
-    public ApiResponse saveUser(RegisterRequest request){
+    public ApiResponse<Void> saveUser(RegisterRequest request){
         String email = request.getEmail();
+        log.info("Registering new user with email: {}", request.getEmail());
         if(userRepository.existsByEmail(email)){
+            log.warn("Registration attempt with existing email: {}", request.getEmail());
             throw new UserAlreadyExistsException("Email Already Exists");
         }
             String encodedPassword = passwordEncoder.encode(request.getPassword());
@@ -42,7 +46,12 @@ public class UserService {
                     .emailVerified(false)
                     .build();
             userRepository.save(user);
-            return new ApiResponse(true,"User Registered Successfully.",null);
+        log.info("User registered successfully: {}", user.getEmail());
+        return new ApiResponse<>(
+                true,
+                "User Registered Successfully.",
+                null
+        );
     }
 
     //Login

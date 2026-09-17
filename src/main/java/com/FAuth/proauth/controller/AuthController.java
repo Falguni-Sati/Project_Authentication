@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/v1/auth")
 @Tag(
         name = "Authentication",
         description = "APIs for user registration, login, token refresh and logout"
@@ -55,12 +55,14 @@ public class AuthController {
             )
     })
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse> registerUser(
+    public ResponseEntity<ApiResponse<Void>> registerUser(
             @Valid @RequestBody RegisterRequest request) {
 
-        ApiResponse response = userService.saveUser(request);
+        ApiResponse<Void> response = userService.saveUser(request);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
     }
 
     // POST(Login)

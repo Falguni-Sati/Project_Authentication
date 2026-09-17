@@ -29,7 +29,7 @@ public class SecurityConfig {
         return http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/api/v1/auth/**").permitAll()
 
                         .requestMatchers(
                                 "/swagger-ui/**",
@@ -37,9 +37,38 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
 
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/user/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/user/**").hasAnyRole("USER", "ADMIN")
+
                         .anyRequest().authenticated()
+                )
+                .exceptionHandling(exception -> exception
+
+                        .authenticationEntryPoint((request, response, authException) -> {
+
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json");
+
+                            response.getWriter().write("""
+                    {
+                        "success": false,
+                        "message": "Authentication required"
+                    }
+                    """);
+                        })
+
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType("application/json");
+
+                            response.getWriter().write("""
+                    {
+                        "success": false,
+                        "message": "Access denied"
+                    }
+                    """);
+                        })
                 )
                 .addFilterBefore(
                         jwtAuthenticationFilter,
