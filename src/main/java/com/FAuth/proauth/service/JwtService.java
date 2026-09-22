@@ -64,4 +64,14 @@ public class JwtService {
                 .getPayload()
                 .getExpiration();
     }
+    public String generateExpiredToken(String email) {
+        Date now = new Date();
+
+        return Jwts.builder()
+                .subject(email)
+                .issuedAt(new Date(now.getTime() - 10000))
+                .expiration(new Date(now.getTime() - 5000))
+                .signWith(getSigningKey())
+                .compact();
+    }
 }
