@@ -6,16 +6,20 @@ import com.FAuth.proauth.entity.UserStatus;
 import com.FAuth.proauth.repository.UserRepository;
 import com.FAuth.proauth.service.JwtService;
 import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import org.springframework.http.MediaType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-
 import java.util.Optional;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -30,6 +34,9 @@ class UserControllerTest {
 
     @MockitoBean
     private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Test
     void getCurrentUserWithoutTokenShouldReturn401() throws Exception {
@@ -128,5 +135,232 @@ class UserControllerTest {
                                 .header("Authorization", "Bearer " + token)
                 )
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void authenticatedUserShouldUpdateProfile() throws Exception {
+
+        User user = new User();
+        user.setEmail("user@example.com");
+        user.setFullName("Old Name");
+        user.setPassword("password");
+        user.setRole(Role.USER);
+        user.setStatus(UserStatus.ACTIVE);
+        user.setEmailVerified(false);
+
+        when(userRepository.findByEmail("user@example.com"))
+                .thenReturn(Optional.of(user));
+
+        when(userRepository.existsByEmail("updated@example.com"))
+                .thenReturn(false);
+
+        when(userRepository.save(any(User.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        String token = jwtService.generateToken("user@example.com");
+
+        mockMvc.perform(
+                        put("/api/v1/user/me")
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                            {
+                                "fullName": "Updated Name",
+                                "email": "updated@example.com"
+                            }
+                            """)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fullName").value("Updated Name"))
+                .andExpect(jsonPath("$.email").value("updated@example.com"))
+                .andExpect(jsonPath("$.role").value("USER"));
+    }
+
+    @Test
+    void updateProfileWithoutTokenShouldReturn401() throws Exception {
+
+        mockMvc.perform(
+                        put("/api/v1/user/me")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                            {
+                                "fullName": "Updated Name",
+                                "email": "updated@example.com"
+                            }
+                            """)
+                )
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void updateProfileWithExistingEmailShouldReturn409() throws Exception {
+
+        User user = new User();
+        user.setEmail("user@example.com");
+        user.setFullName("Old Name");
+        user.setPassword("password");
+        user.setRole(Role.USER);
+        user.setStatus(UserStatus.ACTIVE);
+        user.setEmailVerified(false);
+
+        when(userRepository.findByEmail("user@example.com"))
+                .thenReturn(Optional.of(user));
+
+        when(userRepository.existsByEmail("existing@example.com"))
+                .thenReturn(true);
+
+        String token = jwtService.generateToken("user@example.com");
+
+        mockMvc.perform(
+                        put("/api/v1/user/me")
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                            {
+                                "fullName": "Updated Name",
+                                "email": "existing@example.com"
+                            }
+                            """)
+                )
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void authenticatedUserShouldChangePassword() throws Exception {
+
+        User user = new User();
+        user.setEmail("user@example.com");
+        user.setFullName("Normal User");
+        user.setPassword(passwordEncoder.encode("OldPassword123"));
+        user.setRole(Role.USER);
+        user.setStatus(UserStatus.ACTIVE);
+        user.setEmailVerified(false);
+
+        when(userRepository.findByEmail("user@example.com"))
+                .thenReturn(Optional.of(user));
+
+        when(userRepository.save(any(User.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        String token = jwtService.generateToken("user@example.com");
+
+        mockMvc.perform(
+                        patch("/api/v1/user/password")
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                            {
+                                "currentPassword": "OldPassword123",
+                                "newPassword": "NewPassword123"
+                            }
+                            """)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message")
+                        .value("Password changed successfully"));
+    }
+
+    @Test
+    void wrongCurrentPasswordShouldReturn401() throws Exception {
+
+        User user = new User();
+        user.setEmail("user@example.com");
+        user.setFullName("Normal User");
+        user.setPassword(passwordEncoder.encode("CorrectPassword123"));
+        user.setRole(Role.USER);
+        user.setStatus(UserStatus.ACTIVE);
+        user.setEmailVerified(false);
+
+        when(userRepository.findByEmail("user@example.com"))
+                .thenReturn(Optional.of(user));
+
+        String token = jwtService.generateToken("user@example.com");
+
+        mockMvc.perform(
+                        patch("/api/v1/user/password")
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                            {
+                                "currentPassword": "WrongPassword123",
+                                "newPassword": "NewPassword123"
+                            }
+                            """)
+                )
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void changePasswordWithoutTokenShouldReturn401() throws Exception {
+
+        mockMvc.perform(
+                        patch("/api/v1/user/password")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                            {
+                                "currentPassword": "OldPassword123",
+                                "newPassword": "NewPassword123"
+                            }
+                            """)
+                )
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void invalidProfileUpdateShouldReturn400() throws Exception {
+        User user = new User();
+        user.setEmail("user@example.com");
+        user.setFullName("Normal User");
+        user.setPassword(passwordEncoder.encode("Password123"));
+        user.setRole(Role.USER);
+        user.setStatus(UserStatus.ACTIVE);
+        user.setEmailVerified(false);
+
+        when(userRepository.findByEmail("user@example.com"))
+                .thenReturn(Optional.of(user));
+        String token = jwtService.generateToken("user@example.com");
+
+        mockMvc.perform(
+                        put("/api/v1/user/me")
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                            {
+                                "fullName": "",
+                                "email": "invalid-email"
+                            }
+                            """)
+                )
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void invalidPasswordChangeShouldReturn400() throws Exception {
+
+        User user = new User();
+        user.setEmail("user@example.com");
+        user.setFullName("Normal User");
+        user.setPassword(passwordEncoder.encode("Password123"));
+        user.setRole(Role.USER);
+        user.setStatus(UserStatus.ACTIVE);
+        user.setEmailVerified(false);
+
+        when(userRepository.findByEmail("user@example.com"))
+                .thenReturn(Optional.of(user));
+        String token = jwtService.generateToken("user@example.com");
+
+        mockMvc.perform(
+                        patch("/api/v1/user/password")
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                            {
+                                "currentPassword": "",
+                                "newPassword": "123"
+                            }
+                            """)
+                )
+                .andExpect(status().isBadRequest());
     }
 }

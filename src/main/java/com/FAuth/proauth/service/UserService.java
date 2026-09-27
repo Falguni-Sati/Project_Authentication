@@ -10,6 +10,7 @@ import com.FAuth.proauth.exception.UserAlreadyExistsException;
 import com.FAuth.proauth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -103,5 +104,54 @@ public class UserService {
                 page.getTotalPages(),
                 page.isLast()
         );
+    }
+
+    public UserProfileResponse updateProfile(
+            String currentEmail,
+            UpdateProfileRequest request
+    ) {
+
+        User user = userRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        if (!currentEmail.equalsIgnoreCase(request.getEmail())
+                && userRepository.existsByEmail(request.getEmail())) {
+            throw new UserAlreadyExistsException("Email Already Exists");
+        }
+
+        user.setFullName(request.getFullName());
+        user.setEmail(request.getEmail());
+
+        User updatedUser = userRepository.save(user);
+
+        return new UserProfileResponse(
+                updatedUser.getFullName(),
+                updatedUser.getEmail(),
+                updatedUser.getRole().name(),
+                updatedUser.getStatus().name(),
+                updatedUser.getEmailVerified()
+        );
+    }
+
+    public void changePassword(
+            String email,
+            ChangePasswordRequest request
+    ) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        if (!passwordEncoder.matches(
+                request.getCurrentPassword(),
+                user.getPassword()
+        )) {
+            throw new InvalidCredentialsException("Current password is incorrect");
+        }
+
+        user.setPassword(
+                passwordEncoder.encode(request.getNewPassword())
+        );
+
+        userRepository.save(user);
     }
 }
