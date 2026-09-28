@@ -62,7 +62,7 @@ class AdminControllerTest {
                     );
                 });
 
-        String token = jwtService.generateToken("admin@example.com");
+        String token = jwtService.generateToken("admin@example.com",0L);
 
         mockMvc.perform(
                         get("/api/v1/admin/users")
@@ -88,7 +88,7 @@ class AdminControllerTest {
         when(userRepository.findByEmail("user@example.com"))
                 .thenReturn(Optional.of(user));
 
-        String token = jwtService.generateToken("user@example.com");
+        String token = jwtService.generateToken("user@example.com",0L);
 
         mockMvc.perform(
                         get("/api/v1/admin/users")

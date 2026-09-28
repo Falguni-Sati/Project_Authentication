@@ -14,6 +14,11 @@ import java.util.UUID;
 public class RefreshTokenService {
     private final RefreshTokenRepository refreshTokenRepository;
 
+
+    public void deleteByEmail(String email) {
+        refreshTokenRepository.deleteByEmail(email);
+    }
+
     public RefreshToken createRefreshToken(String email) {
 
         RefreshToken refreshToken = RefreshToken.builder()

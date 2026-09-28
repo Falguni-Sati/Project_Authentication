@@ -1,6 +1,5 @@
 package com.FAuth.proauth.service;
 
-import com.FAuth.proauth.entity.User;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,12 +23,12 @@ public class JwtService {
         );
     }
 
-    public String generateToken(String email) {
-
+    public String generateToken(String email, Long tokenVersion) {
         Date now = new Date();
 
         return Jwts.builder()
                 .subject(email)
+                .claim("tokenVersion", tokenVersion)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + expiration))
                 .signWith(getSigningKey())
@@ -73,5 +72,14 @@ public class JwtService {
                 .expiration(new Date(now.getTime() - 5000))
                 .signWith(getSigningKey())
                 .compact();
+    }
+
+    public Long extractTokenVersion(String token) {
+        return Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("tokenVersion", Long.class);
     }
 }

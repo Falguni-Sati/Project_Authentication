@@ -2,6 +2,7 @@ package com.FAuth.proauth.controller;
 
 import com.FAuth.proauth.dto.*;
 import com.FAuth.proauth.entity.RefreshToken;
+import com.FAuth.proauth.entity.User;
 import com.FAuth.proauth.service.JwtService;
 import com.FAuth.proauth.service.RefreshTokenService;
 import com.FAuth.proauth.service.UserService;
@@ -124,9 +125,14 @@ public class AuthController {
 
         String email = oldRefreshToken.getEmail();
 
+        User user = userService.getUserByEmail(email);
+
         refreshTokenService.deleteByToken(oldRefreshToken.getToken());
 
-        String accessToken = jwtService.generateToken(email);
+        String accessToken = jwtService.generateToken(
+                email,
+                user.getTokenVersion()
+        );
 
         RefreshToken newRefreshToken =
                 refreshTokenService.createRefreshToken(email);

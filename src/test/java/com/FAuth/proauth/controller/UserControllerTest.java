@@ -82,7 +82,7 @@ class UserControllerTest {
         when(userRepository.findByEmail("test@example.com"))
                 .thenReturn(Optional.of(user));
 
-        String token = jwtService.generateToken("test@example.com");
+        String token = jwtService.generateToken("test@example.com", 0L);
 
         mockMvc.perform(
                         get("/api/v1/user/me")
@@ -105,7 +105,7 @@ class UserControllerTest {
         when(userRepository.findByEmail("test@example.com"))
                 .thenReturn(Optional.of(user));
 
-        String token = jwtService.generateToken("test@example.com");
+        String token = jwtService.generateToken("test@example.com", 0L);
 
         mockMvc.perform(
                         get("/api/v1/admin/dashboard")
@@ -128,7 +128,7 @@ class UserControllerTest {
         when(userRepository.findByEmail("admin@example.com"))
                 .thenReturn(Optional.of(admin));
 
-        String token = jwtService.generateToken("admin@example.com");
+        String token = jwtService.generateToken("admin@example.com",0L);
 
         mockMvc.perform(
                         get("/api/v1/admin/dashboard")
@@ -157,7 +157,7 @@ class UserControllerTest {
         when(userRepository.save(any(User.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        String token = jwtService.generateToken("user@example.com");
+        String token = jwtService.generateToken("user@example.com",0L);
 
         mockMvc.perform(
                         put("/api/v1/user/me")
@@ -209,7 +209,7 @@ class UserControllerTest {
         when(userRepository.existsByEmail("existing@example.com"))
                 .thenReturn(true);
 
-        String token = jwtService.generateToken("user@example.com");
+        String token = jwtService.generateToken("user@example.com",0L);
 
         mockMvc.perform(
                         put("/api/v1/user/me")
@@ -242,7 +242,7 @@ class UserControllerTest {
         when(userRepository.save(any(User.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        String token = jwtService.generateToken("user@example.com");
+        String token = jwtService.generateToken("user@example.com",0L);
 
         mockMvc.perform(
                         patch("/api/v1/user/password")
@@ -275,7 +275,7 @@ class UserControllerTest {
         when(userRepository.findByEmail("user@example.com"))
                 .thenReturn(Optional.of(user));
 
-        String token = jwtService.generateToken("user@example.com");
+        String token = jwtService.generateToken("user@example.com",0L);
 
         mockMvc.perform(
                         patch("/api/v1/user/password")
@@ -319,7 +319,7 @@ class UserControllerTest {
 
         when(userRepository.findByEmail("user@example.com"))
                 .thenReturn(Optional.of(user));
-        String token = jwtService.generateToken("user@example.com");
+        String token = jwtService.generateToken("user@example.com",0L);
 
         mockMvc.perform(
                         put("/api/v1/user/me")
@@ -348,7 +348,7 @@ class UserControllerTest {
 
         when(userRepository.findByEmail("user@example.com"))
                 .thenReturn(Optional.of(user));
-        String token = jwtService.generateToken("user@example.com");
+        String token = jwtService.generateToken("user@example.com",0L);
 
         mockMvc.perform(
                         patch("/api/v1/user/password")
@@ -362,5 +362,51 @@ class UserControllerTest {
                             """)
                 )
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void oldTokenShouldBeRejectedAfterPasswordChange() throws Exception {
+
+        User user = new User();
+        user.setEmail("user@example.com");
+        user.setFullName("Normal User");
+        user.setPassword(passwordEncoder.encode("OldPassword123"));
+        user.setRole(Role.USER);
+        user.setStatus(UserStatus.ACTIVE);
+        user.setEmailVerified(false);
+        user.setTokenVersion(0L);
+
+        when(userRepository.findByEmail("user@example.com"))
+                .thenReturn(Optional.of(user));
+
+        when(userRepository.save(any(User.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Token issued before password change
+        String oldToken =
+                jwtService.generateToken("user@example.com", 0L);
+
+        // Change password
+        mockMvc.perform(
+                        patch("/api/v1/user/password")
+                                .header("Authorization", "Bearer " + oldToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                            {
+                                "currentPassword": "OldPassword123",
+                                "newPassword": "NewPassword123"
+                            }
+                            """)
+                )
+                .andExpect(status().isOk());
+
+        // Password change should increment tokenVersion
+        // 0 → 1
+
+        mockMvc.perform(
+                        get("/api/v1/user/me")
+                                .header("Authorization", "Bearer " + oldToken)
+                )
+                .andExpect(status().isUnauthorized());
     }
 }

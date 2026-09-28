@@ -64,8 +64,10 @@ public class UserService {
 
         if (matches) {
 
-            String accessToken =
-                    jwtService.generateToken(user.get().getEmail());
+            String accessToken = jwtService.generateToken(
+                    user.get().getEmail(),
+                    user.get().getTokenVersion()
+            );
 
             RefreshToken refreshToken =
                     refreshTokenService.createRefreshToken(user.get().getEmail());
@@ -152,6 +154,11 @@ public class UserService {
                 passwordEncoder.encode(request.getNewPassword())
         );
 
+        user.setTokenVersion(
+                user.getTokenVersion() + 1
+        );
+
         userRepository.save(user);
+        refreshTokenService.deleteByEmail(email);
     }
 }

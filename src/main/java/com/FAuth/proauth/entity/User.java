@@ -22,6 +22,7 @@ public class User {
     private Role role;
     private UserStatus status;
     private Boolean emailVerified;
+    private Long tokenVersion = 0L;
     private Instant createdAt;
     private Instant updatedAt;
 }

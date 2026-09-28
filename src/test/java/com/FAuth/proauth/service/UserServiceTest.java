@@ -105,7 +105,7 @@ class UserServiceTest {
         when(passwordEncoder.matches("password123", "encodedPassword"))
                 .thenReturn(true);
 
-        when(jwtService.generateToken("test@gmail.com"))
+        when(jwtService.generateToken("test@gmail.com",0L))
                 .thenReturn("access-token-123");
 
         when(refreshTokenService.createRefreshToken("test@gmail.com"))
@@ -119,7 +119,7 @@ class UserServiceTest {
 
         verify(userRepository).findByEmail("test@gmail.com");
         verify(passwordEncoder).matches("password123", "encodedPassword");
-        verify(jwtService).generateToken("test@gmail.com");
+        verify(jwtService).generateToken("test@gmail.com",0L);
         verify(refreshTokenService).createRefreshToken("test@gmail.com");
     }
 
@@ -148,7 +148,7 @@ class UserServiceTest {
         verify(userRepository).findByEmail("test@gmail.com");
         verify(passwordEncoder).matches("wrongPassword", "encodedPassword");
 
-        verify(jwtService, never()).generateToken(anyString());
+        verify(jwtService, never()).generateToken(anyString(),anyLong());
         verify(refreshTokenService, never()).createRefreshToken(anyString());
     }
 
@@ -173,7 +173,7 @@ class UserServiceTest {
                 .matches(anyString(), anyString());
 
         verify(jwtService, never())
-                .generateToken(anyString());
+                .generateToken(anyString(),anyLong());
 
         verify(refreshTokenService, never())
                 .createRefreshToken(anyString());
