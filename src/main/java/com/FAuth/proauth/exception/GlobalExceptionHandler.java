@@ -1,6 +1,7 @@
 package com.FAuth.proauth.exception;
 
 import com.FAuth.proauth.dto.ErrorResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     @ExceptionHandler(UserAlreadyExistsException.class)
@@ -103,5 +105,23 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(errorResponse);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
+
+        log.error("Unexpected error occurred", ex);
+
+        ErrorResponse response = new ErrorResponse(
+                false,
+                "An unexpected error occurred",
+                LocalDateTime.now(),
+                null
+
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(response);
     }
 }
